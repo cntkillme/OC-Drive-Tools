@@ -1,6 +1,6 @@
 --- Open Computers Drive Tools - Drive Editor Script
 
-local partman = pcall(require, "partman") and require("partman") or dofile("lib/partman.lua")
+local partman = require("partman")
 local usage = [[Manages drives and partitions.
 parted         Shows usage.
 parted edit    Enters interactive mode.

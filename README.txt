@@ -4,19 +4,26 @@ Open Computers Drive Tools
  Version: 1.0
 Requires: Lua 5.3
 
+Installing OCDT:
+Move or copy all files in the lib directory to /lib or /usr/lib.
+Alternatively, add the lib directory to your package.path.
 
 Quick Start:
 1. Enable Lua 5.3 on CPU.
 2. Flash eeprom.lua to some EEPROM.
 3. Create and insert unmanaged floppy.
-4. Run 'parted test ' followed by the address of the unmanaged floppy.
-5. Insert EEPROM and floppy, reboot.
+4. Install OCDT.
+5. Run 'parted test ' followed by the address of the unmanaged floppy.
+6. Insert EEPROM and floppy, reboot.
 
-The OCDT (Open Computers Drive Tools) suite assumes the size per sector of all drives is 512 bytes.
-The OCPT (Open Computers Partition Table) requires 1 sector of header data and will not support drives with a capacity greater than 2 TiB. Mo more than 32 partitions are supported by the OCPT.
-Sectors are marked and utilized logically: they fall in the range [0, numDriveSectors).
-The BIOS data field of the OCPT is used by the standard OCBIOS, use caution when altering.
-The BIOS partition must be a bootable and raw partition for the standard EEPROM to boot from it. If no active or valid BIOS partition is given, the first possible bootable, raw partition will be executed.
+Requirements:
+- Drives have 512 bytes per sector.
+- Drives have a capacity of at least 0.5 KiB (drives larger than 2 TiB will not be fully utilized).
+- When utilizing the OCDT libraries, logically-addressed sectors must be in the range [0, numDriveSectors).
+- Negative sectors, where supported, denote a sector from the end of the drive (-1 = last sector).
+- When applicable, a proper BIOS partition must be both a raw partition and a bootable partition.
+
+If no valid BIOS partition is given, the first possible raw and bootable will be executed.
 
 
 OCPT Drive Layout
