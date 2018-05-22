@@ -1,0 +1,232 @@
+Open Computers Drive Tools - Partition Manager
+
+Author: Matthew (CntKillMe)
+Requires: Lua 5.3
+Description: a framework to assist in managing drives and partition tables and entries.
+
+
+[ FRAMEWORK ]
+
+tuple<number, string> formatCapacity(uint64 capacity)
+	Divides capacity by its greatest power of 1024 and returns the appropriate suffix (nil if none is available).
+	Example: formatCapacity(31) -> 31, "bytes"
+	Example: formatCapacity(4718592) -> 4.5, "MiB"
+	Example: formatCapacity(2^40) -> 1, "TiB"
+
+void registerFlag(string name, uint8 bitIndex)
+	Registers a new flag at the given bit index and assigns it a mnemonic, throws an error if the given flag already exists.
+	bitIndex should be between [0, 16) to be usable.
+
+void registerType(string name, uint16 entry)
+	Registers a new type with the given entry and assigns it a mnemonic, throws an error if the given type already exists.
+
+string getFlagName(uint8 bitIdx)
+	Returns the name of the given flag, nil if unknown.
+
+string getTypeName(uint16 entry)
+	Returns the name of the given type, nil if unknown.
+
+array<uint8> getFlags()
+	Returns a list of all standard flags.
+
+array<uint16> getTypes()
+	Returns a list of all standard types.
+
+array<drive> getDrives()
+	Returns an array of attached drive components as drives (see drive class).
+
+
+[ STATE CLASS ]
+
+static state new()
+	Returns a new OCPT state.
+
+void reset()
+	Resets the state.
+
+void load(drive drive)
+	Loads an OCPT drive and decodes the partition table.
+
+void save()
+	Encodes the modified partition table and writes it to the drive.
+
+string dump()
+	Encodes the modified partition table and returns it. Does not write to drive.
+
+void analyze(array<string> errors, array<string> warnings, array<string> notes)
+	Analyzes the header and all active partitions for potential problems.
+	Errors must be fixed, warnings should be fixed, notes may be fixed.
+
+drive getDrive()
+	Returns the associated drive (see drive class).
+
+partition getPartition(uint8 entry)
+	Returns the given partition (see partition class).
+
+string getSignature()
+	Returns the signature.
+
+array<partition> getActivePartitions()
+	Returns a list of active partitions.
+
+partition getLastBootPartition()
+	Returns the partition last booted from.
+
+partition getBIOSPartition()
+	Returns the BIOS partition.
+
+string getBIOSData()
+	Returns the BIOS data.
+
+void setBIOSPartition(uint8 entry)
+	Sets the BIOS partition.
+	entry should be between [0, 32) to be usable.
+
+void setBIOSData(string data)
+	Sets the BIOS data.
+	The length of data should not exceed 118
+
+[ PARTITION CLASS ]
+Partition entries are 0-based, so the partitions of a drive range from [0, 32).
+The BIOS partition must be a bootable and raw partition for the standard EEPROM to boot from it. If no active or valid BIOS partition is given, the first possible bootable, raw partition will be executed.
+
+static partition new(uint8 entry, state ocpt)
+	Returns a new partition associated with a partition table.
+
+void decode(string ocpe)
+	Decodes the given partition entry.
+
+bool isActive()
+	Returns true if the partition is active.
+
+state getOCPT()
+	Returns the OCPT associated with this partition.
+
+uint8 getEntry()
+	Returns the partition number.
+
+uint32 getFirstSector()
+	Returns the first sector.
+
+uint32 getNumSectors()
+	Returns the number of sectors.
+
+uint32, uint32 getSectorRange()
+	Returns the start and end sectors of the partition.
+	The range of a partition is [firstSector, firstSector + numSectors).
+
+uint16 getFlags()
+	Returns the partition's flags.
+
+bool hasFlag(uint8 bit)
+	Returns true if the given flag is set.
+
+uint16 getType()
+	Returns the partition type.
+
+void activate()
+	Activates the partition.
+
+void deactivate()
+	Deactivates the partition.
+
+void setFirstSector(uint32 firstSector)
+	Sets the first sector of the partition.
+
+void setNumSectors(uint32 numSectors)
+	Sets the number of sectors used by the partition.
+
+void setFlags(uint16 flags)
+	Sets the flags of the partition.
+
+void setFlag(uint8 bit)
+	Sets a flag.
+
+void clearFlag(uint8 bit)
+	Unsets a flag.
+
+void toggleFlag(uint8 bit)
+	Toggles a flag.
+
+void clearFlags()
+	Unsets all flags.
+
+void setType(uint16 type)
+	Sets the type of the partition.
+
+void analyze(array<string> errors, array<string> warnings, array<string> notes)
+	Analyzes the partition for potential problems if the partition is active.
+	Errors must be fixed, warnings should be fixed, notes may be fixed.
+
+[ DRIVE CLASS ]
+Sectors are 0-based, so the sectors of a drive range from [0, sectors).
+
+static drive new(string driveAddress)
+	Returns a new drive with the given drive address.
+
+static component<drive> getDrive(string driveAddress)
+	Returns a proxy of a drive component given its address.
+
+void makeOCPT()
+	NULLs the entire first sector of the drive and writes the OCPT signature.
+
+bool isAvailable()
+	Returns true if the drive is still available (the component is still attached).
+
+bool isOCPT()
+	Returns true if the drive is an OCPT drive.
+
+string getAddress()
+	Returns the address of the drive.
+
+component<drive> getProxy()
+	Returns the drive proxy.
+
+uint64 getCapacity()
+	Returns the capacity of the drive.
+
+uint32 getSectors()
+	Returns the number of sectors the drive contains.
+
+any getLabel()
+	Returns the label of the drive.
+
+void setLabel(any label)
+	Sets the label of the drive.
+
+uint32 resolveSector(int64 sector)
+	Resolves the sector into its logical value.
+	Negative indices indicate a sector starting from the end of the drive (-1 = last sector).
+
+uint32 resolveCount(int64 sector, uint32 count)
+	Clamps count between [0, sectors - resolveSector(sector)).
+	This ensures that sector + count is less than the total number of sectors.
+
+string readSector(int64 sector)
+	Reads a sector from the drive.
+
+array<string> readSectors(int64 sector, uint32 count = MAX)
+	Reads a continuous range of sectors and returns what was read.
+	The n field of the returned array indicates the number of sectors actually read.
+
+void writeSector(int64 sector, string buffer)
+	Writes buffer into a sector in the drive.
+
+uint32 writeSectors(int64 sector, string buffer, string fill = "", uint32 count = MAX)
+	Writes a large buffer into a range of continuous sectors. The number of sectors will not exceed count.
+	Any remaining space in the last sector written to will be filled.
+	Returns the number of sectors actually written to, at most ceil(#buffer/512).
+
+void moveSector(drive other, int64 src, int64 dest)
+	Copies sector of the current drive to the sector of another.
+
+uint32 moveSectors(drive other, int64 src, int64 dest, uint32 count = MAX)
+	Copies sectors from the current drive to the other. The number of sectors will not exceed count.
+	Returns the number of sectors actually copied.
+
+void fillSector(int64 sector, string fill = "\0")
+	Fills a sector with the given string (repeated to reach a length of 512)
+
+uint32 fillSectors(int64 sector, string fill = "\0", uint32 count = MAX)
+	Fills a continuous range of sectors.
+	Returns the number of sectors actually filled.
