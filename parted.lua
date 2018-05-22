@@ -347,7 +347,7 @@ Sector Range: [%d, %d) (%d sectors)
 					elseif suffix == "pib" then exponent = 4
 					end
 
-					local sectors = math.floor((math.abs(tonumber(scale or 0)) * 1024^exponent)/512)
+					local sectors = math.ceil((math.abs(tonumber(scale or 0)) * 1024^exponent)/512)
 					local capacity, suffix = partman.formatCapacity(sectors * 512)
 
 					print(("Sectors: %d (Capacity: %.1f%s = %d bytes)"):format(sectors, capacity, suffix, sectors * 512))
@@ -435,7 +435,7 @@ end
 function fill(drive, sector, n, str)
 	if not (drive and sector) then
 		print("usage: parted fill <drive> <sector> [n=1] [str='\\0']")
-		print("\tFills n sectors with a repeated string from src:sector")
+		print("\tFills n sectors with a repeated string from src:sector.")
 	else
 		local drive = partman.drive.new(drive)
 

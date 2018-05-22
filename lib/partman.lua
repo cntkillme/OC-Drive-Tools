@@ -221,18 +221,16 @@ do
 
 		for i = 0, 30 do
 			for j = i + 1, 31 do
-				if i ~= j then
-					local partition1 = partitions[i]
-					local partition2 = partitions[j]
+				local partition1 = partitions[i]
+				local partition2 = partitions[j]
 
-					if partition1:isActive() and partition2:isActive() then
-						if partition1:getFirstSector() > partition2:getFirstSector() then
-							partition1, partition2 = partition2, partition1
-						end
+				if partition1:isActive() and partition2:isActive() then
+					if partition1:getFirstSector() > partition2:getFirstSector() then
+						partition1, partition2 = partition2, partition1
+					end
 
-						if partition2:getFirstSector() < partition1:getFirstSector() + partition1:getNumSectors() then
-							table.insert(errors, ("overlap between partition %d and partition %d."):format(i, j))
-						end
+					if partition2:getFirstSector() < partition1:getFirstSector() + partition1:getNumSectors() then
+						table.insert(errors, ("overlap between partition %d and partition %d."):format(i, j))
 					end
 				end
 			end
