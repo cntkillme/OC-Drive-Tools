@@ -105,6 +105,7 @@ do
 
 	function framework.getDrives()
 		local drives = { }
+		
 		for driveAddress in component.list("drive", true) do
 			table.insert(drives, framework.drive.new(driveAddress))
 		end
@@ -124,10 +125,8 @@ do
 
 			header = {
 				signature = "OCPT",
-				active_partitions = 0,
-				last_boot_partition = 0,
-				bios_partition = 0,
-				bios_data = ""
+				unused = "",
+				active_partitions = 0
 			},
 
 			partitions = { },
@@ -143,10 +142,8 @@ do
 	function state:reset()
 		self.header = {
 			signature = "OCPT",
-			active_partitions = 0,
-			last_boot_partition = 0,
-			bios_partition = 0,
-			bios_data = ""
+			unused = "",
+			active_partitions = 0
 		}
 		
 		for entry = 0, 31 do
@@ -181,9 +178,6 @@ do
 
 		-- check types
 		assert(check_range(header.active_partitions, 0), "active partitions is not an unsigned integer")
-		assert(check_range(header.last_boot_partition, 0), "last boot partition is not an unsigned integer")
-		assert(check_range(header.bios_partition, 0), "BIOS partitions is not an unsigned integer")
-		assert(type(header.bios_data) == "string", "BIOS data is not a string")
 
 		if header.signature ~= "OCPT" then
 			table.insert(errors, "bad signature.")
@@ -195,24 +189,10 @@ do
 			table.insert(notes, "no active partitions.")
 		end
 
-		if not check_range(header.bios_partition, 0, 32) then
-			table.insert(notes, "bad BIOS partition.")
-		elseif not partitions[header.bios_partition]:isActive() then
-			table.insert(warnings, "BIOS partition inactive.")
-		else
-			if not partitions[header.bios_partition]:hasFlag(0) then
-				table.insert(warnings, "BIOS partition is not bootable.")
-			end
-
-			if partitions[header.bios_partition]:getType() ~= 0 then
-				table.insert(warnings, "BIOS partition is not a raw partition.")
-			end
-		end
-
-		if #header.bios_data > 118 then
-			table.insert(warnings, "BIOS data too large, data passed position 112 will be dropped.")
-		elseif #header.bios_data < 118 then
-			table.insert(notes, "BIOS data too small, it will be padded with NULLs.")
+		if #header.unused > 120 then
+			table.insert(warnings, "unused section too large, some data will be lost.")
+		elseif #header.unused < 120 then
+			table.insert(notes, "unused section too small, it will be padded with NULLs.")
 		end
 
 		for entry = 0, 31 do
@@ -265,26 +245,6 @@ do
 
 		return partitions
 	end
-
-	function state:getLastBootPartition()
-		return self.partitions[self.header.last_boot_partition]
-	end
-
-	function state:getBIOSPartition()
-		return self.partitions[self.header.bios_partition]
-	end
-
-	function state:getBIOSData()
-		return self.header.bios_data
-	end
-
-	function state:setBIOSPartition(entry)
-		self.header.bios_partition = entry
-	end
-
-	function state:setBIOSData(data)
-		self.header.bios_data = data
-	end
 	
 	function state:setActivePartitions(activePartitions)
 		self.header.active_partitions = activePartitions
@@ -293,14 +253,6 @@ do
 	function state:activePartitions()
 		return self.header.active_partitions
 	end
-	
-	function state:lastBootPartition()
-		return self.header.last_boot_partition
-	end
-
-	function state:biosPartition()
-		return self.header.bios_partition
-	end
 
 	function state:encode()
 		local header = self.header
@@ -308,9 +260,7 @@ do
 		local buffer = {
 			header.signature:sub(1, 4) .. ("\0"):rep(4 - #header.signature),
 			pack_int(header.active_partitions & 0xFFFFFFFF, 4),
-			pack_int(header.last_boot_partition & 0xFF, 1),
-			pack_int(header.bios_partition & 0xFF, 1),
-			header.bios_data:sub(1, 118) .. ("\0"):rep(118 - #header.bios_data)
+			header.unused:sub(1, 120) .. ("\0"):rep(118 - #header.unused)
 		}
 
 		for entry = 0, 31 do
@@ -326,9 +276,7 @@ do
 
 		header.signature = ocptChunk:sub(1, 4)
 		header.active_partitions = unpack_int(ocptChunk:sub(5, 8))
-		header.last_boot_partition = unpack_int(ocptChunk:sub(9, 9))
-		header.bios_partition = unpack_int(ocptChunk:sub(10, 10))
-		header.bios_data = ocptChunk:sub(11, 128)
+		header.unused = ocptChunk:sub(9, 128)
 
 		for entry = 0, 31 do
 			local entryOffset = 128 + entry*12

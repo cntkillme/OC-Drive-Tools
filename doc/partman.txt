@@ -72,23 +72,8 @@ array<partition> getActivePartitions()
 partition getLastBootPartition()
 	Returns the partition last booted from.
 
-partition getBIOSPartition()
-	Returns the BIOS partition.
-
-string getBIOSData()
-	Returns the BIOS data.
-
-void setBIOSPartition(uint8 entry)
-	Sets the BIOS partition.
-	entry should be between [0, 32) to be usable.
-
-void setBIOSData(string data)
-	Sets the BIOS data.
-	The length of data should not exceed 118
-
 [ PARTITION CLASS ]
 Partition entries are 0-based, so the partitions of a drive range from [0, 32).
-The BIOS partition must be a bootable and raw partition for the standard EEPROM to boot from it. If no active or valid BIOS partition is given, the first possible bootable, raw partition will be executed.
 
 static partition new(uint8 entry, state ocpt)
 	Returns a new partition associated with a partition table.

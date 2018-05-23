@@ -88,6 +88,7 @@ do
 				valid, buffer = try_boot(address)
 
 				if valid then
+					eeprom.setData(address)
 					bootAddress = address
 					break
 				end
