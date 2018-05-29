@@ -9,17 +9,38 @@ Move or copy all files in the lib directory to /lib or /usr/lib.
 Alternatively, add the lib directory to your package.path.
 
 Quick Start:
-1. Enable Lua 5.3.
-2. Flash bios.lua.
-3. Install OCDT.
-4. Run 'parted test <drive>' where drive is the address of an unmanaged drive.
-5. Insert EEPROM and floppy, reboot.
+1. Ensure Lua 5.3 is being used.
+2. Install OCDT.
+3. Insert empty EEPROM and unmanaged drive.
+4. Run 'parted test <drive>' where drive is the address of the unmanaged drive.
+5. Reboot.
 
 Requirements:
 - Drives have 512 bytes per sector.
 - Drives have a capacity of at least 0.5 KiB (drives larger than 2 TiB will not be fully utilized).
-- When utilizing the OCDT libraries, logically-addressed sectors must be in the range [0, numDriveSectors).
+- When utilizing the OCDT libraries and scripts, sectors are indexed logically (0-based).
 - Negative sectors, where supported, denote a sector from the end of the drive (-1 = last sector).
+
+Boot Modes:
+0 - Standard:   Boot from boot address and boot partition. If booting fails, command mode entered.
+1 - Standard-R: Same as standard but if booting fails, error and quit.
+2 - Command:    Enter command mode on boot.
+3 - Network:    Network boot. Downloads boot code from Boot URL and executes. If this fails, command mode entered.
+4 - Network-R:  Same as network but if booting fails, error and quit.
+
+Boot failures do not cover syntax or runtime errors in the boot code. 
+When booting from the network, a GET request to the Boot URL is sent and the response message (if successful) is executed.
+Command mode is not available if no GPU and screen are connected.
+
+
+BIOS Data Layout
+
+Offset | Size      | Contents
+-------|-----------|---------
+0      | 16 bytes  | Boot Address (big-endian)
+16     | 4 bytes   | Boot Partition
+20     | 4 bytes   | Boot Mode
+24     | *         | Boot URL
 
 
 OCPT Drive Layout

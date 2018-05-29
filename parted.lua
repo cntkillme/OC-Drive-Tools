@@ -1,5 +1,6 @@
 --- Open Computers Drive Tools - Drive Editor Script
 
+local component = component or require("component")
 local partman = require("partman")
 local usage = [[Manages drives and partitions.
 parted         Shows usage.
@@ -11,30 +12,30 @@ parted fill    Fills sectors of a drive with a repeated string from stdin.
 parted dump    Dumps a range of sectors of a drive to a file.
 parted load    Loads a range of sectors into a drive from a file.
 parted ocpt    Make a drive an OCPT drive.
-parted test    Make a test OCPT drive (hardcoded BIOS).]]
+parted bios    Flash bios to EEPROM.
+parted test    Make a test OCPT drive and flashes BIOS to EEPROM.]]
 
 local edit_usage = [[Interactive Mode Commands
-?    Show commands.
-q    Quits interactive mode.
-i    List drive information.
-p    List drive partitions.
-a    Analyze partition table.
-z    Clear partition table.
-b    Set BIOS partition.
-c    Create partition.
-r    Remove partition.
-f    Toggle partition flag.
-t    Edit partition type.
-s    Configure partition start sector.
-n    Configure partition size.
-w    Write partition table.
-x    Reload partition table.
-cvt  Converts capacity to number of sectors.
+?  Show commands.
+k  Converts capacity to number of sectors.
+q  Quits interactive mode.
+i  List drive information.
+p  List drive partitions.
+a  Analyze partition table.
+z  Clear partition table.
+c  Create partition.
+r  Remove partition.
+f  Toggle partition flag.
+t  Edit partition type.
+s  Configure partition start sector.
+n  Configure partition size.
+w  Write partition table.
+x  Reload partition table.
 ]]
 
 function main(args)
 	local mode = args[1]
-	local commands = { edit = edit, list = list, read = read, move = move, fill = fill, dump = dump, load = load, ocpt = ocpt, test = test }
+	local commands = { edit = edit, list = list, read = read, move = move, fill = fill, dump = dump, load = load, ocpt = ocpt, bios = bios, test = test }
 
 	if mode then
 		local proc = assert(commands[mode], "invalid usage, see `parted`")
@@ -85,6 +86,28 @@ function edit(drive)
 
 			if command == "?" then
 				print(edit_usage)
+			elseif command == "k" then
+				local scale, suffix = prompt[1], prompt[2] or "B"
+
+				if not scale then
+					print("usage: cvt <scale> <suffix>")
+					print("suffixes: B (bytes, default), KiB, MiB, GiB, TiB, PiB")
+				else
+					local exponent = 0
+
+					suffix = suffix:lower()					
+					if suffix == "kib" then exponent = 1
+					elseif suffix == "mib" then exponent = 2
+					elseif suffix == "gib" then exponent = 3
+					elseif suffix == "tib" then exponent = 4
+					elseif suffix == "pib" then exponent = 4
+					end
+
+					local sectors = math.ceil((math.abs(tonumber(scale or 0)) * 1024^exponent)/512)
+					local capacity, suffix = partman.formatCapacity(sectors * 512)
+
+					print(("Sectors: %d (Capacity: %.1f%s = %d bytes)"):format(sectors, capacity, suffix, sectors * 512))
+				end
 			elseif command == "q" then
 				break
 			elseif command == "i" then
@@ -156,26 +179,6 @@ Sector Range: [%d, %d) (%d sectors)
 			elseif command == "z" then
 				state:reset()
 				print("Partition table cleared.")
-			elseif command == "b" then
-				local entry = prompt[1]
-
-				if not entry then
-					print("usage: b <partition>")
-					print("\tChanging the BIOS partition to an entry greater than 31 will disable the BIOS.")
-				else
-					local success, error = pcall(function()
-						local partition = state:getPartition(check_int("partition", entry, 0, 2^32))
-
-						state:setBIOSPartition(partition:getEntry())
-					end)
-
-					if success then
-						print("BIOS partition changed.")
-					else
-						print(error)
-						print("Could not change BIOS partition.")
-					end
-				end
 			elseif command == "c" then
 				local entry, startSector, numSectors, type, flags = table.unpack(prompt, 1, 5)
 
@@ -330,28 +333,6 @@ Sector Range: [%d, %d) (%d sectors)
 			elseif command == "x" then
 				state:load(drive)
 				print("Reloaded.")
-			elseif command == "cvt" then
-				local scale, suffix = prompt[1], prompt[2] or "B"
-
-				if not scale then
-					print("usage: cvt <scale> <suffix>")
-					print("suffixes: B (bytes, default), KiB, MiB, GiB, TiB, PiB")
-				else
-					local exponent = 0
-
-					suffix = suffix:lower()					
-					if suffix == "kib" then exponent = 1
-					elseif suffix == "mib" then exponent = 2
-					elseif suffix == "gib" then exponent = 3
-					elseif suffix == "tib" then exponent = 4
-					elseif suffix == "pib" then exponent = 4
-					end
-
-					local sectors = math.ceil((math.abs(tonumber(scale or 0)) * 1024^exponent)/512)
-					local capacity, suffix = partman.formatCapacity(sectors * 512)
-
-					print(("Sectors: %d (Capacity: %.1f%s = %d bytes)"):format(sectors, capacity, suffix, sectors * 512))
-				end
 			elseif command then
 				print("Unknown command.")
 			end
@@ -531,27 +512,74 @@ function ocpt(drive)
 	end
 end
 
+function bios(drive, partition, mode)
+	if drive == "help" then
+		print("usage: parted bios [drive] [partition=0] [mode=0]")
+		print("\tFlashes bios.lua to the connected EEPROM.")
+		print("\tSee the README for all valid boot modes.")
+	else
+		local eeprom = component.proxy(assert(component.list("eeprom")(), "no EEPROM available"))
+		partition = check_int("partition", partition or 0, 0, 32)
+		mode = check_int("mode", mode or 0, 0)
+
+		local file = assert(io.open("bios.lua"))
+		local buffer = { }
+
+		print("Flashing EEPROM...")
+		while true do
+			local data = file:read(1024)
+
+			if data then
+				table.insert(buffer, data)
+			else
+				break
+			end
+		end
+
+		eeprom.set(table.concat(buffer))
+		buffer = { }
+
+		if drive then
+			print("Writing boot data...")
+
+			local drive = partman.drive.new(drive)
+			local iter = drive:getAddress():gmatch("([0-9a-f][0-9a-f])")
+
+			for i = 1, 16 do
+				table.insert(buffer, string.char(tonumber(iter(), 16)))
+			end
+			table.insert(buffer, ("<I4"):pack(partition))
+			table.insert(buffer, ("<I4"):pack(mode))
+			eeprom.setData(table.concat(buffer))
+		else
+			print("Boot data retained.")
+		end
+
+		print("EEPROM flashed.")
+	end
+end
+
 function test(drive)
 	if not drive then
 		print("usage: parted test <drive>")
-		print("\tWrites a predefined partition table and BIOS to the drive.")
+		print("\tWrites a predefined partition table.")
 	else
 		local state = partman.state.new()
 		local drive = partman.drive.new(drive)
 		drive:makeOCPT()
 		assert(state:load(drive), "unknown error")
 
-		local biosPartition = state:getPartition(0)
-		biosPartition:setFirstSector(1)
-		biosPartition:setNumSectors(1)
-		biosPartition:setFlag(0) -- bootable
-		biosPartition:activate()
+		local bootPartition = state:getPartition(0)
+		bootPartition:setFirstSector(1)
+		bootPartition:setNumSectors(1)
+		bootPartition:setFlag(0) -- bootable
+		bootPartition:activate()
 
 		local code = [[local gpu = component.proxy(component.list("gpu", true)())
 local width, height
 local a = 0
 gpu.bind((component.list("screen", true)()))
-gpu.set(1, 1, "OCPT Test BIOS")
+gpu.set(1, 1, "=== TEST BOOTCODE ===")
 width, height = gpu.getResolution()
 
 while true do
@@ -563,9 +591,18 @@ while true do
 
 	a = a + 1
 end]]
-		drive:writeSectors(1, code, " ")
+		print("Writing partition table to drive...")
 		state:save()
 
+		print("Writing test bootcode to drive...")
+		drive:writeSectors(1, code, " ")
+
+		if component.isAvailable("eeprom") then
+			bios(drive:getAddress())
+		else
+			print("No EEPROM flashed.")
+		end
+		
 		print("Done.")
 	end
 end

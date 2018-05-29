@@ -1,12 +1,12 @@
 1. Complete removal of BIOS partition and related fields and methods.
 - Alter partition table documentation. (done)
 - Alter partman framework. (done)
-- Alter parted.
+- Alter parted. (done)
 - Test partman and parted.
 
 2. Design self-contained BIOS for EEPROM.
-- Remove eeprom.lua.
-- Implement new BIOS in bios.lua.
+- Remove eeprom.lua. (done)
+- Implement new BIOS in bios.lua. (to-do: command mode)
 - Test new BIOS.
 
 3. Design Basic File System (bfs).

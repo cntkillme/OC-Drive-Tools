@@ -78,8 +78,8 @@ Partition entries are 0-based, so the partitions of a drive range from [0, 32).
 static partition new(uint8 entry, state ocpt)
 	Returns a new partition associated with a partition table.
 
-void decode(string ocpe)
-	Decodes the given partition entry.
+void reset()
+	Resets the partition.
 
 bool isActive()
 	Returns true if the partition is active.
