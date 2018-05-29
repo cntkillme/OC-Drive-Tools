@@ -58,14 +58,14 @@ do
 		state = 0
 	elseif mode == 0 or mode == 1 then -- standard boot
 		local address = decode_address(data:sub(1, 16))
-		local partition = unpack_int(data:sub(17, 20))
+		local entry = unpack_int(data:sub(17, 20))
 		local proxy = proxy(address)
 
 		if proxy and proxy.type == "drive" then
 			local ocpt = proxy.readSector(1)
 
 			if ocpt:sub(1, 4) == "OCPT" then
-				local entry = unpack_int(ocpt:sub(5, 8))
+				local partitions = unpack_int(ocpt:sub(5, 8))
 				if (partitions >> entry)&1 == 1 then
 					local offset = 128 + entry*12
 					local ocpe = ocpt:sub(offset + 1, offset + 12)
