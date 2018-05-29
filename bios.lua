@@ -151,4 +151,4 @@ elseif state == 2 then
 end
 
 -- command mode
-error(result)
+error("command-mode: " .. result)

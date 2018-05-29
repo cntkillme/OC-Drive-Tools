@@ -512,14 +512,15 @@ function ocpt(drive)
 	end
 end
 
-function bios(drive, partition, mode)
+function bios(drive, partition, url, mode)
 	if drive == "help" then
-		print("usage: parted bios [drive] [partition=0] [mode=0]")
+		print("usage: parted bios [drive] [partition=0] [url] [mode=0]")
 		print("\tFlashes bios.lua to the connected EEPROM.")
 		print("\tSee the README for all valid boot modes.")
 	else
 		local eeprom = component.proxy(assert(component.list("eeprom")(), "no EEPROM available"))
 		partition = check_int("partition", partition or 0, 0, 32)
+		url = url or ""
 		mode = check_int("mode", mode or 0, 0)
 
 		local file = assert(io.open("bios.lua"))
@@ -536,20 +537,28 @@ function bios(drive, partition, mode)
 			end
 		end
 
+		file:close()
 		eeprom.set(table.concat(buffer))
 		buffer = { }
 
 		if drive then
 			print("Writing boot data...")
 
-			local drive = partman.drive.new(drive)
-			local iter = drive:getAddress():gmatch("([0-9a-f][0-9a-f])")
+			if component.isAvailable(drive) then
+				local drive = partman.drive.new(drive)
+				local iter = drive:getAddress():gmatch("([0-9a-f][0-9a-f])")
 
-			for i = 1, 16 do
-				table.insert(buffer, string.char(tonumber(iter(), 16)))
+				for i = 1, 16 do
+					table.insert(buffer, string.char(tonumber(iter(), 16)))
+				end
+			else
+				print("Drive not available, assumed 00000000-0000-0000-0000-000000000000.")
+				table.insert(buffer, ("\0"):rep(16))
 			end
+
 			table.insert(buffer, ("<I4"):pack(partition))
 			table.insert(buffer, ("<I4"):pack(mode))
+			table.insert(buffer, url)
 			eeprom.setData(table.concat(buffer))
 		else
 			print("Boot data retained.")
