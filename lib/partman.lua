@@ -106,8 +106,8 @@ do
 	function framework.getDrives()
 		local drives = { }
 		
-		for driveAddress in component.list("drive", true) do
-			table.insert(drives, framework.drive.new(driveAddress))
+		for address in component.list("drive", true) do
+			table.insert(drives, framework.drive.new(address))
 		end
 
 		return drives

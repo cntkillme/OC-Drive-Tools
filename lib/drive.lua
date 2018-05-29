@@ -4,8 +4,8 @@ local component = component or require("component")
 local drive = { }
 local metatable = { __index = drive }
 
-function drive.new(driveAddress)
-	local proxy = drive.getDrive(driveAddress)
+function drive.new(address)
+	local proxy = drive.getDrive(address)
 	local capacity = proxy.getCapacity()
 
 	return setmetatable({
@@ -17,10 +17,7 @@ function drive.new(driveAddress)
 end
 
 function drive.getDrive(address)
-	local proxy = component.proxy(assert(component.get(address)))
-	assert(proxy.type == "drive", "component is not a drive")
-
-	return proxy
+	return component.proxy(assert(component.get(address, "drive")))
 end
 
 function drive:makeOCPT()

@@ -20,7 +20,7 @@ local edit_usage = [[Interactive Mode Commands
 k  Converts capacity to number of sectors.
 q  Quits interactive mode.
 i  List drive information.
-p  List drive partitions.
+l  List drive partitions.
 a  Analyze partition table.
 z  Clear partition table.
 c  Create partition.
@@ -112,7 +112,7 @@ function edit(drive)
 				break
 			elseif command == "i" then
 				print(drive_info(drive))
-			elseif command == "p" then
+			elseif command == "l" then
 				local partitions = state:getActivePartitions()
 				
 				if #partitions > 0 then
@@ -518,7 +518,7 @@ function bios(drive, partition, url, mode)
 		print("\tFlashes bios.lua to the connected EEPROM.")
 		print("\tSee the README for all valid boot modes.")
 	else
-		local eeprom = component.proxy(assert(component.list("eeprom")(), "no EEPROM available"))
+		local eeprom = component.proxy(assert(component.list("eeprom", true)(), "no EEPROM available"))
 		partition = check_int("partition", partition or 0, 0, 32)
 		url = url or ""
 		mode = check_int("mode", mode or 0, 0)
@@ -544,9 +544,9 @@ function bios(drive, partition, url, mode)
 		if drive then
 			print("Writing boot data...")
 
-			if component.isAvailable(drive) then
+			if component.get(drive, "drive") then
 				local drive = partman.drive.new(drive)
-				local iter = drive:getAddress():gmatch("([0-9a-f][0-9a-f])")
+				local iter = drive:getAddress():gmatch("[0-9a-f][0-9a-f]")
 
 				for i = 1, 16 do
 					table.insert(buffer, string.char(tonumber(iter(), 16)))
