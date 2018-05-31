@@ -400,7 +400,7 @@ do
 			if not check_range(self.first_sector, 1, self.ocpt:getDrive():getSectors()) then
 				table.insert(errors, ("partition %d: first sector out of range."):format(self.entry))
 			-- check last sector
-			elseif not check_range(self.first_sector + self.num_sectors, self.first_sector, self.ocpt:getDrive():getSectors()) then
+			elseif not check_range(self.first_sector + self.num_sectors - 1, self.first_sector, self.ocpt:getDrive():getSectors()) then
 				table.insert(errors, ("partition %d: partition too large."):format(self.entry))
 			end
 
