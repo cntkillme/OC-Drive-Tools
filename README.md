@@ -2,7 +2,7 @@
 
 ## About
 Open Computers Drive Tools (OCDT) is a suite of libraries and binaries for managing unmanaged drives.
-The OCDT suite defines a formal partition table (OCPT) and various partition types.
+In addition, the OCDT suite defines a formal partition table (OCPT) and various partition types and filesystems to make working with unmanaged drives practical.
 
 From this point on, the word *drive* is referring to OpenComputer's [unmanaged drive](https://ocdoc.cil.li/component:drive) component.
 
@@ -24,11 +24,11 @@ wget -fq https://raw.githubusercontent.com/cntkillme/OC-Drive-Tools/v2/install.l
 ```
 
 ## Requirements
-1. All EEPROMs' code section has a capacity of at least 4 KiB (default value).
-2. All EEPROMs' data section has a capacity of at least 256 bytes (default value).
+- All EEPROMs' code section has a capacity of at least 4 KiB (default value).
+- All EEPROMs' data section has a capacity of at least 256 bytes (default value).
 
-*Note:* drives larger than 2 TiB will be underutilized.
+*Note*: drives larger than 2 TiB will be underutilized.
 
 ## Conventions
-1. Sectors are indexed logically, so `sector 0` corresponds to the first sector.
-2. Negative sectors indicate a sector from the end of a drive, so `sector -1` corresponds to the last sector.
+- Sectors are indexed logically, so `sector 0` corresponds to the first sector.
+- Negative sectors indicate a sector from the end of a drive, so `sector -1` corresponds to the last sector.
